@@ -25,6 +25,22 @@ last-updated: 2026-03-24
 - `/triage --stale` — find issues older than 14 days with no activity
 - After the `issue-monitor` SessionStart hook reports new issues
 
+## Auto-enrich mode
+
+When `/do` routes a "fix issue N" request through its Issue-Fix Route (Tier 0.5), it invokes
+`/triage <N>` in auto-enrich mode. In this mode only:
+
+- Run Phases 1-4 (classify, investigate, root cause with file:line references).
+- Auto-apply type + severity labels — no approval pause.
+- Auto-post the root-cause writeup as an issue comment — no approval pause.
+- Do NOT auto-fix or open a PR; hand the enriched findings back to the router, which proceeds
+  to the fix path itself.
+
+The approval gate is waived here because labels and a findings comment are reversible (a label
+can be removed, a comment edited or deleted) and the user opted into automatic enrichment by
+running `/do fix issue N`. Auto-fix PRs are out of scope for this mode and still follow the
+normal Phase 5 flow when triage is invoked on its own.
+
 ## Codex PR review integration
 
 For Codex-visible PRs, decide whether to use native `@codex review`, local Citadel triage, or both:
