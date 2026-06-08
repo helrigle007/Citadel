@@ -105,11 +105,48 @@ Regex/keyword on raw input. Catches trivial commands:
 | "package delivery" or "review package" | Run `node scripts/package-delivery.js <campaign-slug>` to create a local review handoff and update campaign evidence |
 | "pr ready" or "ready for review" | Run `node scripts/pr-ready.js --pr <pull-request-url> --run-verification` to produce an approval-readiness handoff |
 | "--list" or "list" | Show all available skills |
+| "fix issue N", "work on issue N", "fix #N", "address issue N" | Run the Issue-Fix Route (Tier 0.5 below) — triage preflight, then fix |
 | "fix typo in X" or "rename X to Y" | Direct edit (no orchestrator needed) |
 | "commit" | Stage and commit changes |
 | "rollback", "undo phase", "restore checkpoint" | Find active campaign, read latest checkpoint ref, run git stash pop |
 
-If matched → execute directly. Done.
+If matched → execute directly. Done. (Exception: "fix issue N" runs the Tier 0.5 route below, not a one-shot command.)
+
+### Tier 0.5: Issue-Fix Route — triage preflight (Cost: ~0 on ready issue | ~1-2k on enrich)
+
+Triggered when Tier 0 matches "fix issue N", "work on issue N", "fix #N", or "address issue N".
+Guarantees a vague issue gets enriched and labeled before any fix work starts. The Step -1
+work branch is already in place by the time this runs.
+
+1. **Read the issue.** Resolve `$GH` and `<owner/repo>` exactly as in /triage Phase 0, then:
+   ```bash
+   $GH issue view <N> --repo <owner/repo> --json number,title,body,labels,state,comments
+   ```
+
+2. **Readiness gate.** The issue is *ready* only if ALL three hold:
+   - it carries a type label (`bug`, `feature`, `question`, `docs`, `infra`), AND
+   - the body contains reproduction steps OR an expected-vs-actual description, AND
+   - the body is longer than ~280 characters.
+
+   All three hold → skip to step 4. Any fails → the issue is *vague*. On borderline cases
+   (e.g. a long body with no explicit repro) make one cheap LLM judgment — "Does this give an
+   implementer enough to act without guessing?" If no, treat it as vague.
+
+3. **Enrich via triage (vague issues only).** Invoke `/triage <N>` in auto-enrich mode
+   (see triage's "Auto-enrich mode" section):
+   - runs triage Phases 1-4 — classify, investigate, root cause with file:line references
+   - auto-applies type + severity labels
+   - auto-posts the root-cause writeup as an issue comment
+   - announce: "Issue #<N> was thin — ran triage to enrich and label it before fixing."
+
+   Carry triage's findings forward (or re-read the issue) so the fix uses the enriched
+   understanding, not the original one-liner.
+
+4. **Proceed to fix.** Route to the fix path with the now-enriched issue as context:
+   - default → `/marshal`, carrying the Step -1 branch and the issue findings
+   - if triage classified the issue as complexity >= 4 or multi-session → `/archon` instead
+
+   Announce the routing decision per Step 4. Done.
 
 ### Tier 1: Active State Short-Circuit (Cost: ~0 tokens | Latency: <100ms)
 
