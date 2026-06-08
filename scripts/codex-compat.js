@@ -379,6 +379,17 @@ function generatePluginManifest() {
 function generatePluginHooks() {
   console.log('Generating plugin-bundled Codex hooks...');
 
+  // In-place guard: when building the plugin at the Citadel repo root,
+  // hooks/hooks.json is the committed Claude Code plugin manifest (Claude format,
+  // ${CLAUDE_PLUGIN_ROOT}). Overwriting it with the Codex translation would break
+  // the Claude plugin and dirty the source tree. Codex installs into an external
+  // project root still get a generated hooks/hooks.json. See the Codex-format
+  // contract tests, which generate into sandboxes, not in-place.
+  if (path.resolve(PROJECT_ROOT) === CITADEL_ROOT) {
+    console.log('  in-place build: preserving committed Claude-format hooks/hooks.json (skipped).');
+    return;
+  }
+
   const hooksTemplatePath = path.join(CITADEL_ROOT, 'hooks', 'hooks-template.json');
   const hooksTemplate = readJSON(hooksTemplatePath);
   if (!hooksTemplate) {

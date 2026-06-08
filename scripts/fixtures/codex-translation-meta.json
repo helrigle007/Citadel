@@ -1,5 +1,5 @@
 {
-  "installedCount": 19,
+  "installedCount": 20,
   "skippedCount": 19,
   "installed": [
     "PermissionRequest:permission-request",
@@ -10,6 +10,7 @@
     "PostToolUse:organize-enforce",
     "PostToolUse:post-edit",
     "PreCompact:pre-compact",
+    "PreToolUse:branch-guard",
     "PreToolUse:external-action-gate",
     "PreToolUse:governance",
     "PreToolUse:protect-files",

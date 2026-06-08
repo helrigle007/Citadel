@@ -5,6 +5,28 @@
         "hooks": [
           {
             "type": "command",
+            "command": "node ${CITADEL_ROOT}/codex-adapter.js branch-guard",
+            "statusMessage": "Citadel: branch-guard",
+            "timeout": 5
+          }
+        ],
+        "matcher": "Edit"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CITADEL_ROOT}/codex-adapter.js branch-guard",
+            "statusMessage": "Citadel: branch-guard",
+            "timeout": 5
+          }
+        ],
+        "matcher": "Write"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "node ${CITADEL_ROOT}/codex-adapter.js protect-files",
             "statusMessage": "Citadel: protect-files",
             "timeout": 5
