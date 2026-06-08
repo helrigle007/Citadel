@@ -59,6 +59,17 @@ Announce the chain before executing: "I'll [step 1], then [step 2], then [step 3
 
 ### Phase 3: EXECUTE
 
+**Work branch guard (before the first file-mutating step).** Citadel never works on
+`main`/`master`. Before any step that writes files (fix, build, improve chains), run:
+
+```bash
+node scripts/ensure-work-branch.js --task "<user's direction>"
+```
+
+Relay the announce line if it branches; continue silently on `skip`. Skip this entirely
+for read-only chains (audit, map, research) — they never touch files. The
+`branch-guard.js` hook is the backstop if a mutating step somehow runs on a protected branch.
+
 For each step in the chain:
 
 1. Load the relevant skill if one exists (e.g., `/review` for audit steps)

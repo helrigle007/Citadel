@@ -296,6 +296,60 @@ test('protect-files: allows Read on non-env file (exit 0)', () => {
   if (r.exitCode !== 0) return `expected exit 0, got ${r.exitCode}`;
 });
 
+// ── branch-guard.js ──
+
+function gitSandboxOnBranch(branch) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'citadel-bg-'));
+  fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
+  const opts = { cwd: dir, encoding: 'utf8' };
+  spawnSync('git', ['init', '-q'], opts);
+  spawnSync('git', ['symbolic-ref', 'HEAD', `refs/heads/${branch}`], opts);
+  spawnSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '--allow-empty', '-q', '-m', 'init'], opts);
+  return dir;
+}
+
+test('branch-guard: blocks Edit on main (exit 2)', () => {
+  const dir = gitSandboxOnBranch('main');
+  const r = fireHook('branch-guard.js', { tool_name: 'Edit', tool_input: { file_path: path.join(dir, 'src/x.ts') } }, dir);
+  cleanup(dir);
+  if (r.exitCode !== 2) return `expected exit 2, got ${r.exitCode}: ${r.stdout}`;
+  if (!r.stdout.includes('[branch-guard]')) return 'no block message in stdout';
+});
+
+test('branch-guard: allows Edit on a work branch (exit 0)', () => {
+  const dir = gitSandboxOnBranch('work/feature');
+  const r = fireHook('branch-guard.js', { tool_name: 'Edit', tool_input: { file_path: path.join(dir, 'src/x.ts') } }, dir);
+  cleanup(dir);
+  if (r.exitCode !== 0) return `expected exit 0, got ${r.exitCode}: ${r.stdout}`;
+});
+
+test('branch-guard: fails open when not a git repo (exit 0)', () => {
+  const r = fireHook('branch-guard.js', { tool_name: 'Edit', tool_input: { file_path: path.join(rDir, 'src/x.ts') } }, rDir);
+  if (r.exitCode !== 0) return `expected exit 0, got ${r.exitCode}: ${r.stdout}`;
+});
+
+test('branch-guard: ignores non-edit tools on main (exit 0)', () => {
+  const dir = gitSandboxOnBranch('main');
+  const r = fireHook('branch-guard.js', { tool_name: 'Read', tool_input: { file_path: path.join(dir, 'src/x.ts') } }, dir);
+  cleanup(dir);
+  if (r.exitCode !== 0) return `expected exit 0, got ${r.exitCode}: ${r.stdout}`;
+});
+
+test('branch-guard: allowMainEdits config bypasses block (exit 0)', () => {
+  const dir = gitSandboxOnBranch('main');
+  fs.writeFileSync(path.join(dir, '.claude', 'harness.json'), JSON.stringify({ branchGuard: { allowMainEdits: true } }));
+  const r = fireHook('branch-guard.js', { tool_name: 'Edit', tool_input: { file_path: path.join(dir, 'src/x.ts') } }, dir);
+  cleanup(dir);
+  if (r.exitCode !== 0) return `expected exit 0, got ${r.exitCode}: ${r.stdout}`;
+});
+
+test('branch-guard: CITADEL_DEV env bypasses block (exit 0)', () => {
+  const dir = gitSandboxOnBranch('main');
+  const r = fireHook('branch-guard.js', { tool_name: 'Edit', tool_input: { file_path: path.join(dir, 'src/x.ts') } }, dir, { CITADEL_DEV: 'true' });
+  cleanup(dir);
+  if (r.exitCode !== 0) return `expected exit 0, got ${r.exitCode}: ${r.stdout}`;
+});
+
 // ── governance.js ──
 
 test('governance: writes audit.jsonl entry on Edit', () => {

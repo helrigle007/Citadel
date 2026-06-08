@@ -253,4 +253,8 @@ if (jsonOnly) {
   printHuman(report);
 }
 
-process.exit(pass ? 0 : 1);
+// Set exit code but let the event loop drain naturally. Calling process.exit()
+// here truncates the report on a pipe: stdout to a pipe is async, and exit()
+// terminates before the OS pipe buffer (~8 KB on macOS) is flushed, so callers
+// using execFileSync/spawnSync received a cut-off, unparseable JSON document.
+process.exitCode = pass ? 0 : 1;

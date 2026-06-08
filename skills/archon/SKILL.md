@@ -99,6 +99,17 @@ Prefer `effort` over `budget_tokens` for all sub-agent invocations — ~20-40% t
 
 ### Step 3: EXECUTE PHASES
 
+**Work branch guard (once, before the first phase).** Citadel never builds on
+`main`/`master`. Before executing any phase, run:
+
+```bash
+node scripts/ensure-work-branch.js --task "<campaign goal or slug>"
+```
+
+Relay the announce line if it branches; continue silently on `skip` (resumed campaigns
+are already on their work branch). The phase checkpoints below then stash onto the work
+branch, and `branch-guard.js` blocks any stray edit that lands on a protected branch.
+
 For each phase:
 
 1. **Direction check**: Is this phase still aligned with the campaign goal?

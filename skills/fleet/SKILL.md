@@ -90,6 +90,17 @@ Produce a ranked list of campaigns with:
 
 ### Step 3: WAVE EXECUTION
 
+**Work branch guard (once, before the first wave).** Worktrees branch off the current
+HEAD and Step 5 merges them back into it — so if HEAD is `main`/`master`, completed work
+lands on a protected branch. Before spawning any wave, set the base branch:
+
+```bash
+node scripts/ensure-work-branch.js --task "<session direction or slug>"
+```
+
+Relay the announce line if it branches; continue silently on `skip`. Every worktree now
+branches off the work branch and merges back into it, never `main`.
+
 For each wave:
 
 1. **Prepare context** for each agent:

@@ -34,6 +34,35 @@ Use `/do` when the user wants something done but doesn't know (or care) which to
 
 Classification runs top-to-bottom. First match wins. Each tier is cheaper than the next.
 
+### Step -1: Work Branch Guard (Cost: ~0 tokens | Latency: <100ms)
+
+Citadel never works on `main`/`master` directly. Before executing **any route that
+will modify files**, branch off first:
+
+```bash
+node scripts/ensure-work-branch.js --task "<original user request>"
+```
+
+- If the result is `branched`, relay its announce line to the user (e.g.
+  `On main -> branched to work/add-auth-flow. Proceeding.`) and continue.
+- If `skip` (already on a work branch, detached HEAD, or not a git repo), continue silently.
+- If `error`, tell the user and create the branch manually (`git checkout -b work/<slug>`)
+  before any edit.
+
+**Run it for:** direct edits, and every code-mutating route — skills that write code
+(`/create-app`, `/scaffold`, `/refactor`, `/test-gen`, `/doc-gen`, `/design`, etc.),
+`/marshal`, `/archon`, `/fleet`. The orchestrators carry the branch you set here;
+`/fleet` additionally spins its own worktrees off it.
+
+**Skip it for read-only routes:** `status`, `dashboard`, `--list`, `next`, `operator`,
+`preview`, `continue` (resume only), `telemetry`, and the `typecheck`/`build`/`test`
+Tier 0 commands. These never touch files.
+
+This is the proactive guard. `hooks_src/branch-guard.js` is the deterministic backstop —
+it blocks any `Edit`/`Write` made while on a protected branch, even outside `/do`. The two
+together mean code work never lands on `main`. To intentionally work on `main`, set
+`branchGuard.allowMainEdits: true` in `.claude/harness.json` (or `CITADEL_DEV=true`).
+
 ### Step 0: Skill Registry Check (Cost: ~0 on hit | ~50 tokens on miss)
 
 Before routing, check if new skills have been added since last registration.
