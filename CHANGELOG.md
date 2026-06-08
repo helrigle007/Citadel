@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.0] - 2026-06-08
+
+### Added
+- Triage preflight on the `/do` fix-issue route. `/do fix issue N` now reads the issue and runs a readiness gate (type label, plus reproduction steps or an expected-vs-actual description, plus a minimum body length); a vague issue gets handed to `/triage N` to investigate, apply type/severity labels, and post a root-cause comment before any fix starts. Detailed issues skip straight to the fix. Triage gains an auto-enrich mode that applies labels and posts the findings comment without its usual approval pause when the router invokes it. (#3)
+
 ## [1.1.0] - 2026-06-08
 
 ### Added
